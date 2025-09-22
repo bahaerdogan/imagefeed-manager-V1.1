@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ frame.name }} Sil - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4 class="card-title mb-0">Çerçeve Projesini Sil</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>Dikkat!</strong> Bu işlem geri alınamaz.
+                </div>
+                
+                <p>Aşağıdaki çerçeve projesini silmek istediğinizden emin misiniz?</p>
+                
+                <div class="card mb-3">
+                    <div class="card-body">
+                        {% if frame.frame_image %}
+                        <img src="{{ frame.frame_image.url }}" class="img-fluid mb-2" alt="{{ frame.name }}" style="max-height: 150px;">
+                        {% endif %}
+                        <h5 class="card-title">{{ frame.name }}</h5>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                Oluşturulma: {{ frame.created_at|date:"d M Y H:i" }}<br>
+                                {% if frame.outputs.exists %}
+                                    {{ frame.outputs.count }} oluşturulan görsel silinecek
+                                {% else %}
+                                    Henüz oluşturulmuş görsel yok
+                                {% endif %}
+                            </small>
+                        </p>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'frame_detail' frame.pk %}" class="btn btn-secondary">İptal</a>
+                        <button type="submit" class="btn btn-danger">Evet, Sil</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

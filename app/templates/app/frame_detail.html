@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ frame.name }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>{{ frame.name }}</h1>
+            <div>
+                {% if not frame.coordinates_set %}
+                    <a href="{% url 'frame_preview' frame.pk %}" class="btn btn-primary">Koordinat Ayarla</a>
+                {% endif %}
+                <a href="{% url 'frame_delete' frame.pk %}" class="btn btn-outline-danger">Sil</a>
+                <a href="{% url 'frame_list' %}" class="btn btn-outline-secondary">Geri</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Proje Bilgileri</h5>
+            </div>
+            <div class="card-body">
+                {% if frame.frame_image %}
+                <img src="{{ frame.frame_image.url }}" class="img-fluid mb-3" alt="{{ frame.name }}">
+                {% endif %}
+                
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Proje Adı:</strong></td>
+                        <td>{{ frame.name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Oluşturan:</strong></td>
+                        <td>{{ frame.user.username }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Oluşturulma:</strong></td>
+                        <td>{{ frame.created_at|date:"d M Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Feed URL:</strong></td>
+                        <td>
+                            <small>
+                                <a href="{{ frame.feed_url }}" target="_blank" class="text-break">
+                                    {{ frame.feed_url|slice:":50" }}{% if frame.feed_url|length > 50 %}...{% endif %}
+                                </a>
+                            </small>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">İşleme Durumu</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    {% if frame.processing_completed %}
+                        <span class="badge bg-success">✓ İşleme Tamamlandı</span>
+                    {% elif frame.processing_started %}
+                        <span class="badge bg-warning">⏳ İşleniyor</span>
+                    {% elif frame.coordinates_set %}
+                        <span class="badge bg-info">📐 Koordinatlar Ayarlandı</span>
+                    {% else %}
+                        <span class="badge bg-secondary">🆕 Yeni</span>
+                    {% endif %}
+                </div>
+                
+                {% if frame.coordinates_set %}
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>X Koordinatı:</strong></td>
+                        <td>{{ frame.x_coordinate }}px</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Y Koordinatı:</strong></td>
+                        <td>{{ frame.y_coordinate }}px</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Genişlik:</strong></td>
+                        <td>{{ frame.width }}px</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Yükseklik:</strong></td>
+                        <td>{{ frame.height }}px</td>
+                    </tr>
+                </table>
+                {% endif %}
+                
+                {% if frame.processing_completed %}
+                <div class="alert alert-success">
+                    <strong>{{ frame.outputs.count }}</strong> görsel başarıyla oluşturuldu!
+                </div>
+                {% elif frame.processing_started %}
+                <div class="alert alert-info">
+                    Toplu işleme devam ediyor. Sayfayı yenileyerek durumu kontrol edebilirsiniz.
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="location.reload()">Yenile</button>
+                </div>
+                {% elif not frame.coordinates_set %}
+                <div class="alert alert-warning">
+                    Toplu işleme başlamak için önce koordinatları ayarlamanız gerekiyor.
+                    <a href="{% url 'frame_preview' frame.pk %}" class="btn btn-sm btn-primary mt-2">Koordinat Ayarla</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        {% if frame.processing_completed or frame.outputs.exists %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Oluşturulan Görseller</h5>
+            </div>
+            <div class="card-body">
+                <table id="outputs-table" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Ürün ID</th>
+                            <th>Görsel</th>
+                            <th>Oluşturulma</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- DataTables will populate this -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">Henüz görsel oluşturulmadı</h4>
+                {% if not frame.coordinates_set %}
+                    <p class="text-muted">Görsel oluşturmaya başlamak için koordinatları ayarlayın.</p>
+                    <a href="{% url 'frame_preview' frame.pk %}" class="btn btn-primary">Koordinat Ayarla</a>
+                {% elif not frame.processing_started %}
+                    <p class="text-muted">Koordinatlar ayarlandı, işleme başlatılıyor...</p>
+                {% else %}
+                    <p class="text-muted">İşleme devam ediyor, lütfen bekleyin...</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if frame.processing_completed or frame.outputs.exists %}
+<script>
+$(document).ready(function() {
+    $('#outputs-table').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: '{% url "frame_outputs_data" frame.pk %}',
+            type: 'GET'
+        },
+        columns: [
+            { data: 0, name: 'product_id' },
+            { data: 1, name: 'output_image', orderable: false, searchable: false },
+            { data: 2, name: 'created_at' },
+            { data: 3, name: 'actions', orderable: false, searchable: false }
+        ],
+        order: [[2, 'desc']],
+        pageLength: 5,
+        lengthMenu: [[5, 10, 25, 50], [5, 10, 25, 50]],
+        language: {
+            processing: "İşleniyor...",
+            search: "Ürün ID ile Ara:",
+            lengthMenu: "Sayfa başına _MENU_ kayıt göster",
+            info: "_TOTAL_ kayıttan _START_ - _END_ arası gösteriliyor",
+            infoEmpty: "Kayıt bulunamadı",
+            infoFiltered: "(_MAX_ kayıt içinden filtrelendi)",
+            paginate: {
+                first: "İlk",
+                last: "Son",
+                next: "Sonraki",
+                previous: "Önceki"
+            },
+            emptyTable: "Henüz görsel oluşturulmadı",
+            zeroRecords: "Eşleşen kayıt bulunamadı"
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Çerçevelerim - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Çerçevelerim</h1>
+            <a href="{% url 'frame_create' %}" class="btn btn-primary">Yeni Çerçeve Oluştur</a>
+        </div>
+        <p class="text-muted">Oluşturduğun tüm çerçeve projelerini görüntüle ve yönet.</p>
+    </div>
+</div>
+
+{% if frames %}
+<div class="row mt-4">
+    {% for frame in frames %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card frame-card">
+            {% if frame.frame_image %}
+            <img src="{{ frame.frame_image.url }}" class="card-img-top" alt="{{ frame.name }}" style="height: 200px; object-fit: cover;">
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title">{{ frame.name }}</h5>
+                <p class="card-text">
+                    <small class="text-muted">Oluşturulma: {{ frame.created_at|date:"d M Y H:i" }}</small>
+                </p>
+                
+                <div class="processing-status mb-3">
+                    {% if frame.processing_completed %}
+                        <span class="badge bg-success">✓ İşleme Tamamlandı</span>
+                        <small class="d-block text-muted">{{ frame.outputs.count }} görsel oluşturuldu</small>
+                    {% elif frame.processing_started %}
+                        <span class="badge bg-warning">⏳ İşleniyor</span>
+                        <small class="d-block text-muted">Toplu işleme devam ediyor</small>
+                    {% elif frame.coordinates_set %}
+                        <span class="badge bg-info">📐 Koordinatlar Ayarlandı</span>
+                        <small class="d-block text-muted">İşleme başlatılabilir</small>
+                    {% else %}
+                        <span class="badge bg-secondary">🆕 Yeni</span>
+                        <small class="d-block text-muted">Koordinat ayarı gerekli</small>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex gap-1 flex-wrap">
+                    <a href="{% url 'frame_detail' frame.pk %}" class="btn btn-sm btn-primary">Detaylar</a>
+                    
+                    {% if not frame.coordinates_set %}
+                        <a href="{% url 'frame_preview' frame.pk %}" class="btn btn-sm btn-outline-primary">Önizleme</a>
+                    {% endif %}
+                    
+                    <a href="{% url 'frame_delete' frame.pk %}" class="btn btn-sm btn-outline-danger">Sil</a>
+                </div>
+            </div>
+            
+            <div class="card-footer">
+                <small class="text-muted">
+                    <strong>Feed:</strong> 
+                    <span title="{{ frame.feed_url }}">
+                        {% if frame.feed_url|length > 40 %}
+                            {{ frame.feed_url|slice:":37" }}...
+                        {% else %}
+                            {{ frame.feed_url }}
+                        {% endif %}
+                    </span>
+                </small>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination would go here if needed -->
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <p class="text-muted">Toplam {{ frames.count }} çerçeve projesi</p>
+    </div>
+</div>
+
+{% else %}
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="text-center">
+            <div class="card">
+                <div class="card-body py-5">
+                    <h3 class="text-muted">Henüz çerçeve projesi yok</h3>
+                    <p class="text-muted">İlk çerçeve projeni oluşturmak için aşağıdaki butona tıkla.</p>
+                    <a href="{% url 'frame_create' %}" class="btn btn-primary btn-lg">İlk Çerçeveni Oluştur</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

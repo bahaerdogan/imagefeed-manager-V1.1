@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}Önizleme & Koordinat Ayarlama - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Önizleme & Koordinat Ayarlama</h1>
+        <p class="text-muted">{{ frame.name }} - Ürün görselinin çerçeve üzerindeki konumunu ayarla</p>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="coordinate-form">
+            <h5>Koordinat Ayarları</h5>
+            
+            <form method="post" id="coordinate-form">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.x_coordinate.id_for_label }}" class="form-label">X Koordinatı (px)</label>
+                            {{ form.x_coordinate }}
+                            {% if form.x_coordinate.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.x_coordinate.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.y_coordinate.id_for_label }}" class="form-label">Y Koordinatı (px)</label>
+                            {{ form.y_coordinate }}
+                            {% if form.y_coordinate.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.y_coordinate.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.width.id_for_label }}" class="form-label">Genişlik (px)</label>
+                            {{ form.width }}
+                            {% if form.width.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.width.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.height.id_for_label }}" class="form-label">Yükseklik (px)</label>
+                            {{ form.height }}
+                            {% if form.height.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.height.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button" id="update-preview" class="btn btn-outline-primary">Önizlemeyi Güncelle</button>
+                    <button type="submit" class="btn btn-success">Koordinatları Kaydet & İşleme Başla</button>
+                </div>
+            </form>
+            
+            {% if first_product %}
+            <div class="alert alert-info">
+                <strong>Önizleme Ürünü:</strong> {{ first_product.id }}<br>
+                <small>Feed'den ilk ürün önizleme için kullanılıyor.</small>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <strong>Uyarı:</strong> Feed'den ürün alınamadı. Feed URL'ini kontrol edin.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="preview-container">
+            <h5>Canlı Önizleme</h5>
+            
+            <div id="preview-loading" class="text-center" style="display: none;">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+                <p>Önizleme oluşturuluyor...</p>
+            </div>
+            
+            <div id="preview-error" class="alert alert-danger" style="display: none;"></div>
+            
+            <div id="preview-container">
+                {% if frame.frame_image %}
+                <img src="{{ frame.frame_image.url }}" alt="Çerçeve Önizlemesi" class="preview-image" id="preview-image">
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Koordinat Ayarlama Rehberi</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Koordinat Sistemi:</h6>
+                        <ul>
+                            <li><strong>X:</strong> Sol kenardan piksel cinsinden uzaklık</li>
+                            <li><strong>Y:</strong> Üst kenardan piksel cinsinden uzaklık</li>
+                            <li><strong>Genişlik:</strong> Ürün görselinin genişliği</li>
+                            <li><strong>Yükseklik:</strong> Ürün görselinin yüksekliği</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>İpuçları:</h6>
+                        <ul>
+                            <li>Koordinat (0,0) sol üst köşedir</li>
+                            <li>Değerleri değiştirdikten sonra "Önizlemeyi Güncelle" butonuna tıklayın</li>
+                            <li>Memnun kaldığınızda koordinatları kaydedin</li>
+                            <li>Koordinatlar kaydedildikten sonra toplu işleme otomatik başlar</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#update-preview').click(function() {
+        updatePreview();
+    });
+    
+    // Auto-update preview when coordinates change
+    $('#id_x_coordinate, #id_y_coordinate, #id_width, #id_height').on('input', function() {
+        // Debounce the preview update
+        clearTimeout(window.previewTimeout);
+        window.previewTimeout = setTimeout(updatePreview, 1000);
+    });
+    
+    function updatePreview() {
+        const x = $('#id_x_coordinate').val();
+        const y = $('#id_y_coordinate').val();
+        const width = $('#id_width').val();
+        const height = $('#id_height').val();
+        
+        // Show loading
+        $('#preview-loading').show();
+        $('#preview-error').hide();
+        
+        // Make AJAX request
+        $.ajax({
+            url: '{% url "generate_preview_image" frame.pk %}',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            contentType: 'application/json',
+            data: JSON.stringify({
+                x: parseInt(x) || 0,
+                y: parseInt(y) || 0,
+                width: parseInt(width) || 100,
+                height: parseInt(height) || 100
+            }),
+            success: function(response) {
+                if (response.success) {
+                    $('#preview-image').attr('src', response.image);
+                } else {
+                    $('#preview-error').text('Önizleme oluşturulamadı: ' + response.error).show();
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = 'Önizleme oluşturulurken hata oluştu.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                $('#preview-error').text(errorMsg).show();
+            },
+            complete: function() {
+                $('#preview-loading').hide();
+            }
+        });
+    }
+    
+    // Initial preview update if first product exists
+    {% if first_product %}
+    updatePreview();
+    {% endif %}
+});
+</script>
+{% endblock %}

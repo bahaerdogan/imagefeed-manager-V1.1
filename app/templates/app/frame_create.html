@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Yeni Çerçeve Oluştur - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1>Yeni Çerçeve Projesi Oluştur</h1>
+        <p class="text-muted">Çerçeve görselini yükle ve XML feed URL'ini gir.</p>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label for="{{ form.name.id_for_label }}" class="form-label">Proje Adı</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="text-danger">
+                        {% for error in form.name.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="form-text">Çerçeve projen için açıklayıcı bir isim gir.</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.frame_image.id_for_label }}" class="form-label">Çerçeve Görseli (JPG)</label>
+                {{ form.frame_image }}
+                {% if form.frame_image.errors %}
+                    <div class="text-danger">
+                        {% for error in form.frame_image.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="form-text">Ürün görsellerinin üzerine yerleştirileceği çerçeve görselini yükle. Sadece JPG formatı desteklenir.</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.feed_url.id_for_label }}" class="form-label">XML Feed URL</label>
+                {{ form.feed_url }}
+                {% if form.feed_url.errors %}
+                    <div class="text-danger">
+                        {% for error in form.feed_url.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="form-text">Ürün görsellerinin alınacağı XML feed URL'i. Varsayılan değer case study feed'idir.</div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Çerçeve Oluştur</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">İptal</a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Bilgi</h5>
+            </div>
+            <div class="card-body">
+                <h6>Çerçeve Oluşturma Süreci:</h6>
+                <ol class="small">
+                    <li>Çerçeve adını gir</li>
+                    <li>JPG formatında çerçeve görselini yükle</li>
+                    <li>XML feed URL'ini belirle</li>
+                    <li>Çerçeve oluştur</li>
+                    <li>Önizleme sayfasında koordinatları ayarla</li>
+                    <li>Toplu işleme başlat</li>
+                </ol>
+                
+                <hr>
+                
+                <h6>Desteklenen Format:</h6>
+                <ul class="small">
+                    <li>Çerçeve: JPG/JPEG</li>
+                    <li>Maksimum boyut: 10MB</li>
+                </ul>
+                
+                <hr>
+                
+                <h6>Örnek XML Feed:</h6>
+                <p class="small">
+                    <code>https://cdn.goanalytix.io/assets/casestudy/CaseStudyFeed.xml</code>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

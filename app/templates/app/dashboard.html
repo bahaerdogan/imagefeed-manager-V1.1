@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Hoş Geldin, {{ user.first_name|default:user.username }}!</h1>
+        <p class="lead">Görsel işleme ve feed yönetim uygulamasına hoş geldin.</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Yeni Çerçeve Oluştur</h5>
+                <p class="card-text">Yeni bir çerçeve projesi oluştur ve ürün görsellerini işlemeye başla.</p>
+                <a href="{% url 'frame_create' %}" class="btn btn-primary">Yeni Çerçeve</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Çerçevelerim</h5>
+                <p class="card-text">Oluşturduğun tüm çerçeve projelerini görüntüle ve yönet.</p>
+                <a href="{% url 'frame_list' %}" class="btn btn-outline-primary">Çerçeveleri Gör</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">İstatistikler</h5>
+                <p class="card-text">Toplam {{ frames.count }} çerçeve projesi oluşturuldu.</p>
+                <span class="btn btn-outline-secondary disabled">{{ frames.count }} Proje</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if frames %}
+<div class="row mt-5">
+    <div class="col-12">
+        <h3>Son Çerçeve Projeleri</h3>
+        <div class="row">
+            {% for frame in frames %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card frame-card">
+                    {% if frame.frame_image %}
+                    <img src="{{ frame.frame_image.url }}" class="card-img-top" alt="{{ frame.name }}" style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ frame.name }}</h5>
+                        <p class="card-text">
+                            <small class="text-muted">{{ frame.created_at|date:"d M Y" }}</small>
+                        </p>
+                        <div class="processing-status mb-2">
+                            {% if frame.processing_completed %}
+                                <span class="badge bg-success">İşleme Tamamlandı</span>
+                            {% elif frame.processing_started %}
+                                <span class="badge bg-warning">İşleniyor</span>
+                            {% elif frame.coordinates_set %}
+                                <span class="badge bg-info">Koordinatlar Ayarlandı</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Yeni</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'frame_detail' frame.pk %}" class="btn btn-sm btn-primary">Detaylar</a>
+                        {% if not frame.coordinates_set %}
+                        <a href="{% url 'frame_preview' frame.pk %}" class="btn btn-sm btn-outline-primary">Önizleme</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-3">
+            <a href="{% url 'frame_list' %}" class="btn btn-outline-primary">Tüm Çerçeveleri Gör</a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mt-5">
+    <div class="col-12 text-center">
+        <div class="alert alert-info">
+            <h4>Henüz çerçeve projesi oluşturmadın!</h4>
+            <p>İlk çerçeve projeni oluşturmak için aşağıdaki butona tıkla.</p>
+            <a href="{% url 'frame_create' %}" class="btn btn-primary">İlk Çerçeveni Oluştur</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
