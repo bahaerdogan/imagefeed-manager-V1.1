@@ -23,11 +23,9 @@ def validate_image_file(value):
     if not value:
         return
     
-    # Check file size
     if value.size > 10 * 1024 * 1024:  # 10MB
         raise ValidationError('File size cannot exceed 10MB.')
     
-    # Check file extension
     valid_extensions = ['.jpg', '.jpeg']
     ext = os.path.splitext(value.name)[1].lower()
     if ext not in valid_extensions:

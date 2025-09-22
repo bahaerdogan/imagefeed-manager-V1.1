@@ -66,7 +66,6 @@ def frame_create(request):
 def frame_preview(request, pk):
     frame = get_object_or_404(Frame, pk=pk, user=request.user)
     
-    # Get first product for preview
     first_product = None
     try:
         first_product = utils_functions.get_first_product_from_feed(frame.feed_url)
@@ -84,7 +83,6 @@ def frame_preview(request, pk):
                     frame = form.save(commit=False)
                     frame.coordinates_set = True
                     
-                    # Update status if still draft
                     if frame.status == Frame.Status.DRAFT:
                         frame.status = Frame.Status.COORDINATES_SET
                     
@@ -93,7 +91,6 @@ def frame_preview(request, pk):
                 logger.info(f"Coordinates saved for frame {pk} by user {request.user.username}")
                 messages.success(request, 'Coordinates saved successfully!')
                 
-                # Start bulk processing if not already started
                 if not frame.processing_started:
                     try:
                         task = process_frame_bulk_output.delay(frame.id)
@@ -128,31 +125,26 @@ def generate_preview_image(request, pk):
     frame = get_object_or_404(Frame, pk=pk, user=request.user)
     
     try:
-        # Parse and validate input data
         data = json.loads(request.body)
         x = max(0, min(int(data.get('x', frame.x_coordinate)), 4000))
         y = max(0, min(int(data.get('y', frame.y_coordinate)), 4000))
         width = max(1, min(int(data.get('width', frame.width)), 2000))
         height = max(1, min(int(data.get('height', frame.height)), 2000))
         
-        # Get first product from feed
         first_product = utils_functions.get_first_product_from_feed(frame.feed_url)
         if not first_product:
             logger.warning(f"No products found in feed for frame {pk}")
             return JsonResponse({'error': 'No products found in feed'}, status=400)
         
-        # Generate preview image
         combined_image = utils_functions.overlay_product_on_frame(
             frame.frame_image.name,
             first_product['image_link'],
             x, y, width, height
         )
         
-        # Optimize for preview (smaller size, lower quality)
         if combined_image.size[0] > 800 or combined_image.size[1] > 600:
             combined_image.thumbnail((800, 600), Image.Resampling.LANCZOS)
         
-        # Convert to base64
         buffer = BytesIO()
         combined_image.save(buffer, format='JPEG', quality=75, optimize=True)
         img_str = base64.b64encode(buffer.getvalue()).decode()
@@ -190,7 +182,6 @@ def frame_detail(request, pk):
         user=request.user
     )
     
-    # Get some statistics
     total_outputs = frame.outputs.count()
     
     context = {
@@ -206,26 +197,21 @@ def frame_outputs_data(request, pk):
     frame = get_object_or_404(Frame, pk=pk, user=request.user)
     
     try:
-        # Parse DataTables parameters
         draw = int(request.GET.get('draw', 1))
         start = max(0, int(request.GET.get('start', 0)))
         length = min(100, max(1, int(request.GET.get('length', 10))))  # Limit to 100 per page
         search_value = request.GET.get('search[value]', '').strip()
         
-        # Build queryset
         queryset = Output.objects.filter(frame=frame).select_related('frame')
         
         if search_value:
             queryset = queryset.filter(product_id__icontains=search_value)
         
-        # Get counts
         total_records = Output.objects.filter(frame=frame).count()
         filtered_records = queryset.count()
         
-        # Get paginated results
         outputs = queryset.order_by('-created_at')[start:start + length]
         
-        # Build response data
         data = []
         for output in outputs:
             data.append([
@@ -259,12 +245,10 @@ def frame_delete(request, pk):
         try:
             frame_name = frame.name
             
-            # Delete associated files
             try:
                 if frame.frame_image and os.path.exists(frame.frame_image.path):
                     os.remove(frame.frame_image.path)
                 
-                # Delete output directory
                 output_dir = os.path.join(settings.MEDIA_ROOT, 'outputs', str(frame.pk))
                 if os.path.exists(output_dir):
                     import shutil
@@ -273,7 +257,6 @@ def frame_delete(request, pk):
             except Exception as e:
                 logger.warning(f"Error deleting files for frame {pk}: {str(e)}")
             
-            # Delete database record
             with transaction.atomic():
                 frame.delete()
             
@@ -289,7 +272,6 @@ def frame_delete(request, pk):
     return render(request, 'app/frame_confirm_delete.html', {'frame': frame})
 
 
-# Health Check Views
 def health_check(request):
     """Basic health check endpoint"""
     return JsonResponse({
@@ -354,7 +336,6 @@ def health_metrics(request):
         from .monitoring import collect_system_metrics
         metrics = collect_system_metrics()
         
-        # Add application-specific metrics
         from .models import Frame, Output
         metrics['application'] = {
             'total_frames': Frame.objects.count(),

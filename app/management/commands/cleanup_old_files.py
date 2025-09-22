@@ -34,19 +34,16 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write("DRY RUN - No files will be deleted")
         
-        # Clean up output directories for deleted frames
         outputs_dir = os.path.join(settings.MEDIA_ROOT, 'outputs')
         if os.path.exists(outputs_dir):
             deleted_count = 0
             for frame_dir in os.listdir(outputs_dir):
                 frame_path = os.path.join(outputs_dir, frame_dir)
                 if os.path.isdir(frame_path):
-                    # Check if frame still exists in database
                     from app.models import Frame
                     try:
                         Frame.objects.get(id=int(frame_dir))
                     except (Frame.DoesNotExist, ValueError):
-                        # Frame doesn't exist, delete directory
                         if dry_run:
                             self.stdout.write(f"Would delete: {frame_path}")
                         else:
@@ -56,7 +53,6 @@ class Command(BaseCommand):
             
             self.stdout.write(f"Cleaned up {deleted_count} orphaned output directories")
         
-        # Clean up old log files
         logs_dir = os.path.join(settings.BASE_DIR, 'logs')
         if os.path.exists(logs_dir):
             log_files_deleted = 0

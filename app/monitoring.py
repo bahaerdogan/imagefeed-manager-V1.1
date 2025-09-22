@@ -23,10 +23,8 @@ def monitor_performance(func_name=None):
                 result = func(*args, **kwargs)
                 execution_time = time.time() - start_time
                 
-                # Log performance metrics
                 logger.info(f"Performance: {name} executed in {execution_time:.3f}s")
                 
-                # Store metrics in cache for monitoring dashboard
                 cache_key = f"perf_metrics_{name}"
                 metrics = cache.get(cache_key, [])
                 metrics.append({
@@ -34,7 +32,6 @@ def monitor_performance(func_name=None):
                     'execution_time': execution_time,
                     'success': True
                 })
-                # Keep only last 100 measurements
                 metrics = metrics[-100:]
                 cache.set(cache_key, metrics, 3600)  # 1 hour
                 
@@ -44,7 +41,6 @@ def monitor_performance(func_name=None):
                 execution_time = time.time() - start_time
                 logger.error(f"Performance: {name} failed after {execution_time:.3f}s - {str(e)}")
                 
-                # Store error metrics
                 cache_key = f"perf_metrics_{name}"
                 metrics = cache.get(cache_key, [])
                 metrics.append({
@@ -125,7 +121,6 @@ def collect_system_metrics():
         }
     }
     
-    # Test Redis connection
     try:
         cache.set('health_check', 'ok', 10)
         cache.get('health_check')

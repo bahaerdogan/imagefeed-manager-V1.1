@@ -33,7 +33,6 @@ class FrameModelTests(TestCase):
         )
 
     def test_frame_creation(self):
-        # Create a simple test image
         image = Image.new('RGB', (100, 100), color='red')
         image_file = io.BytesIO()
         image.save(image_file, format='JPEG')
@@ -66,7 +65,6 @@ class FrameModelTests(TestCase):
             height=3000  # Invalid large height
         )
         
-        # This should raise validation errors
         with self.assertRaises(Exception):
             frame.full_clean()
 
@@ -80,7 +78,6 @@ class ViewTests(TestCase):
         )
 
     def test_login_required_views(self):
-        # Test that protected views require login
         protected_urls = [
             reverse('dashboard'),
             reverse('frame_list'),
@@ -89,7 +86,6 @@ class ViewTests(TestCase):
         
         for url in protected_urls:
             response = self.client.get(url, follow=True)
-            # Check that we end up at the login page
             self.assertContains(response, 'Giriş Yap')
 
     def test_dashboard_access_after_login(self):
@@ -108,7 +104,6 @@ class UtilsTests(TestCase):
     def test_url_validation(self):
         from app.utils_functions import validate_url_security
         
-        # Valid URLs
         valid_urls = [
             'https://cdn.goanalytix.io/assets/casestudy/CaseStudyFeed.xml',
             'http://example.com/feed.xml'
@@ -120,7 +115,6 @@ class UtilsTests(TestCase):
             except ValueError:
                 self.fail(f"Valid URL {url} was rejected")
         
-        # Invalid URLs
         invalid_urls = [
             'http://localhost/feed.xml',  # Private IP
             'http://192.168.1.1/feed.xml',  # Private IP
@@ -137,14 +131,11 @@ class UtilsTests(TestCase):
         from PIL import Image
         import io
         
-        # Create test frame image
         frame_image = Image.new('RGB', (400, 300), color='white')
         frame_buffer = io.BytesIO()
         frame_image.save(frame_buffer, format='JPEG')
         frame_buffer.seek(0)
         
-        # This would need a mock for the actual file system
-        # In a real test, you'd mock the file operations
         pass
 
 
@@ -159,7 +150,6 @@ class IntegrationTests(TestCase):
 
     def test_complete_workflow(self):
         """Test the complete workflow from frame creation to processing."""
-        # Create frame
         image = Image.new('RGB', (400, 300), color='red')
         image_file = io.BytesIO()
         image.save(image_file, format='JPEG')
@@ -177,29 +167,24 @@ class IntegrationTests(TestCase):
             'feed_url': 'https://cdn.goanalytix.io/assets/casestudy/CaseStudyFeed.xml'
         })
         
-        # Debug response
         if response.status_code not in [301, 302]:
             print(f"Response status: {response.status_code}")
             print(f"Response content: {response.content.decode()[:500]}")
         
-        # Get the created frame - check if it exists first
         frames = Frame.objects.filter(name='Test Integration Frame')
         if frames.exists():
             frame = frames.first()
             self.assertEqual(frame.status, Frame.Status.DRAFT)
             
-            # Test preview page
             response = self.client.get(reverse('frame_preview', kwargs={'pk': frame.pk}))
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, 'Koordinat Ayarları')
         else:
-            # Check if redirect happened anyway (frame might be created but redirect failed)
             all_frames = Frame.objects.all()
             if all_frames.exists():
                 print(f"Found frames: {[f.name for f in all_frames]}")
             self.skipTest("Frame creation test skipped - likely form validation issue in test environment")
         
-        # Test preview page
         response = self.client.get(reverse('frame_preview', kwargs={'pk': frame.pk}))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Koordinat Ayarları')

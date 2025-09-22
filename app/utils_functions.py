@@ -12,7 +12,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Security settings
 ALLOWED_SCHEMES = {'http', 'https'}
 BLOCKED_PORTS = {22, 23, 25, 53, 135, 139, 445, 993, 995, 1433, 1521, 3306, 3389, 5432, 5984, 6379}
 PRIVATE_IP_RANGES = [
@@ -32,15 +31,12 @@ def validate_url_security(url):
     try:
         parsed = urlparse(url)
         
-        # Check scheme
         if parsed.scheme not in ALLOWED_SCHEMES:
             raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
         
-        # Check hostname
         if not parsed.hostname:
             raise ValueError("Invalid hostname")
         
-        # Resolve IP and check for private ranges
         try:
             ip = socket.gethostbyname(parsed.hostname)
             ip_obj = ipaddress.ip_address(ip)
@@ -52,7 +48,6 @@ def validate_url_security(url):
         except socket.gaierror:
             raise ValueError("Unable to resolve hostname")
         
-        # Check port
         port = parsed.port or (443 if parsed.scheme == 'https' else 80)
         if port in BLOCKED_PORTS:
             raise ValueError(f"Access to port {port} is not allowed")
@@ -74,7 +69,6 @@ def parse_xml_feed(feed_url):
     Returns:
         list: List of dictionaries with 'id' and 'image_link' keys
     """
-    # Check cache first
     cache_key = f"feed_data_{hash(feed_url)}"
     cached_data = cache.get(cache_key)
     if cached_data:
@@ -82,7 +76,6 @@ def parse_xml_feed(feed_url):
         return cached_data
     
     try:
-        # Validate URL for security
         validate_url_security(feed_url)
         
         headers = {
@@ -98,12 +91,10 @@ def parse_xml_feed(feed_url):
         )
         response.raise_for_status()
         
-        # Check content length
         content_length = response.headers.get('content-length')
         if content_length and int(content_length) > MAX_CONTENT_LENGTH:
             raise ValueError(f"Feed too large: {content_length} bytes")
         
-        # Read content with size limit
         content = b''
         downloaded_size = 0
         
@@ -115,7 +106,6 @@ def parse_xml_feed(feed_url):
         
         root = ET.fromstring(content)
         
-        # Handle namespaces
         namespaces = {
             'atom': 'http://www.w3.org/2005/Atom',
             'g': 'http://base.google.com/ns/1.0'
@@ -123,17 +113,14 @@ def parse_xml_feed(feed_url):
         
         products = []
         
-        # Find all entry elements - they are in the Atom namespace
         entries = root.findall('.//atom:entry', namespaces)
         if not entries:
-            # Fallback: try without namespace
             entries = root.findall('.//entry')
         
         for entry in entries:
             product_id = None
             image_link = None
             
-            # Elements are in the Atom namespace
             id_elem = entry.find('atom:id', namespaces)
             if id_elem is not None and id_elem.text:
                 product_id = id_elem.text.strip()
@@ -148,7 +135,6 @@ def parse_xml_feed(feed_url):
                     'image_link': image_link
                 })
         
-        # Cache the results for 30 minutes
         cache.set(cache_key, products, 1800)
         logger.info(f"Parsed {len(products)} products from feed {feed_url}")
         
@@ -175,11 +161,9 @@ def download_image(url):
     Returns:
         PIL.Image: Downloaded image
     """
-    # Check cache first
     cache_key = f"image_{hash(url)}"
     
     try:
-        # Validate URL for security
         validate_url_security(url)
         
         headers = {
@@ -195,17 +179,14 @@ def download_image(url):
         )
         response.raise_for_status()
         
-        # Check content type
         content_type = response.headers.get('content-type', '').lower()
         if content_type and not any(mime in content_type for mime in ['image/jpeg', 'image/png', 'image/webp']):
             raise ValueError(f"Invalid content type: {content_type}")
         
-        # Check content length
         content_length = response.headers.get('content-length')
         if content_length and int(content_length) > 10 * 1024 * 1024:  # 10MB
             raise ValueError(f"Image too large: {content_length} bytes")
         
-        # Read content with size limit
         image_data = BytesIO()
         downloaded_size = 0
         
@@ -218,11 +199,9 @@ def download_image(url):
         image_data.seek(0)
         image = Image.open(image_data)
         
-        # Convert to RGB if necessary (handles RGBA, P mode images)
         if image.mode in ('RGBA', 'P', 'LA'):
             image = image.convert('RGB')
         
-        # Validate image dimensions
         if image.size[0] > 4000 or image.size[1] > 4000:
             raise ValueError(f"Image dimensions too large: {image.size}")
         
@@ -256,29 +235,23 @@ def overlay_product_on_frame(frame_image_path, product_image_url, x, y, width, h
         PIL.Image: Combined image
     """
     try:
-        # Validate coordinates
         if x < 0 or y < 0 or width <= 0 or height <= 0:
             raise ValueError(f"Invalid coordinates: x={x}, y={y}, width={width}, height={height}")
         
-        # Open frame image
         frame_path = os.path.join(settings.MEDIA_ROOT, frame_image_path)
         if not os.path.exists(frame_path):
             raise FileNotFoundError(f"Frame image not found: {frame_path}")
         
         frame = Image.open(frame_path)
         
-        # Validate overlay bounds
         if x + width > frame.size[0] or y + height > frame.size[1]:
             raise ValueError(f"Overlay extends beyond frame boundaries. Frame: {frame.size}, Overlay: ({x}, {y}, {width}, {height})")
         
-        # Download and resize product image
         product = download_image(product_image_url)
         product = product.resize((width, height), Image.Resampling.LANCZOS)
         
-        # Create a copy of frame to avoid modifying original
         result = frame.copy()
         
-        # Paste product image onto frame
         if product.mode == 'RGBA':
             result.paste(product, (x, y), product)
         else:
@@ -305,27 +278,21 @@ def save_output_image(image, frame_id, product_id):
         str: Relative path to saved image
     """
     try:
-        # Create output directory if it doesn't exist
         output_dir = os.path.join(settings.MEDIA_ROOT, 'outputs', str(frame_id))
         os.makedirs(output_dir, exist_ok=True)
         
-        # Sanitize product_id for filename
         safe_product_id = "".join(c for c in str(product_id) if c.isalnum() or c in ('-', '_'))[:50]
         if not safe_product_id:
             safe_product_id = f"product_{hash(product_id) % 10000}"
         
-        # Generate filename
         filename = f"{safe_product_id}.jpg"
         file_path = os.path.join(output_dir, filename)
         
-        # Optimize image before saving
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
-        # Save image with optimization
         image.save(file_path, 'JPEG', quality=85, optimize=True)
         
-        # Return relative path for database storage
         relative_path = os.path.join('outputs', str(frame_id), filename)
         logger.info(f"Saved output image: {relative_path}")
         

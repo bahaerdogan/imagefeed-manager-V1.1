@@ -1,54 +1,41 @@
-#!/bin/bash
 
-# Django Frame Processor Deployment Script
-# This script sets up the application for production deployment
 
 set -e
 
 echo "🚀 Starting Django Frame Processor deployment..."
 
-# Check if virtual environment exists
 if [ ! -d "venv" ]; then
     echo "📦 Creating virtual environment..."
     python3 -m venv venv
 fi
 
-# Activate virtual environment
 echo "🔧 Activating virtual environment..."
 source venv/bin/activate
 
-# Install dependencies
 echo "📚 Installing dependencies..."
 pip install -r requirements.txt
 
-# Check if .env file exists
 if [ ! -f ".env" ]; then
     echo "⚠️  Creating .env file from template..."
     cp .env.example .env
     echo "🔑 Please edit .env file with your production settings!"
 fi
 
-# Run security checks
 echo "🔒 Running security checks..."
 python manage.py check --deploy
 
-# Create logs directory
 echo "📝 Creating logs directory..."
 mkdir -p logs
 
-# Run database migrations
 echo "🗄️  Running database migrations..."
 python manage.py migrate
 
-# Collect static files (if needed for production)
 echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput --clear
 
-# Run tests
 echo "🧪 Running tests..."
 python manage.py test
 
-# Create superuser (interactive)
 echo "👤 Creating superuser (optional)..."
 read -p "Do you want to create a superuser? (y/n): " -n 1 -r
 echo

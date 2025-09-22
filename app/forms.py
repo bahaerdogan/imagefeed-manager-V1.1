@@ -26,11 +26,9 @@ class FrameCreateForm(forms.ModelForm):
     def clean_frame_image(self):
         image = self.cleaned_data.get('frame_image')
         if image:
-            # Check file extension
             if not image.name.lower().endswith(('.jpg', '.jpeg')):
                 raise forms.ValidationError("Only JPG/JPEG files are allowed.")
             
-            # Check file size (limit to 10MB)
             if image.size > 10 * 1024 * 1024:
                 raise forms.ValidationError("Image file size should not exceed 10MB.")
         
